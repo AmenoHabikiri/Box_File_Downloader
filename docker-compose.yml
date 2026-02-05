@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  box-downloader:
+    build: .
+    container_name: box-file-downloader
+    env_file:
+      - .env
+    volumes:
+      # Mount downloads directory to persist downloaded files
+      - ./downloads:/app/downloads
+      # Mount Box JWT config if using JWT authentication
+      - ./box_config.json:/app/box_config.json:ro
+    restart: unless-stopped
+    # Optional: Run as cron job (uncomment and modify as needed)
+    # command: sh -c "while true; do node dist/index.js; sleep 3600; done"
