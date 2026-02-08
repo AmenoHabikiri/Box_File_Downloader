@@ -1,86 +1,132 @@
 # Quick Start Guide
 
-## 1. Get Box Developer Token (Fastest Way)
+Get started with Box Folder Downloader in 3 steps.
 
-1. Visit: https://app.box.com/developers/console
-2. Create or select your app
-3. Go to "Configuration" tab
-4. Scroll to "Developer Token" section
-5. Click "Generate Developer Token"
-6. Copy the token (expires in 60 minutes)
-
-## 2. Setup Project
+## 1. Install Dependencies
 
 ```bash
-cd /Users/sagar.tarafdar/Documents/box-file-downloader
-
-# Install dependencies
-npm install
-
-# Create .env file
-cp .env.example .env
+pip install -r requirements.txt
 ```
 
-## 3. Configure .env
+This installs:
+- `selenium` - Browser automation
+- `requests` - HTTP client
+- `tqdm` - Progress bars
 
-Edit `.env` file:
+## 2. Download Files
 
-```env
-BOX_CLIENT_ID=your_client_id_from_box_console
-BOX_CLIENT_SECRET=your_client_secret_from_box_console
-BOX_DEVELOPER_TOKEN=your_generated_token_here
-
-DOWNLOAD_FOLDER_ID=123456789  # Get from Box folder URL
-DOWNLOAD_PATH=./downloads
-FILE_PATTERN=*.xlsx,*.csv
-```
-
-**Find Folder ID:**
-- Open Box folder in browser
-- URL looks like: `https://app.box.com/folder/123456789`
-- Use the number `123456789`
-
-## 4. Run
+### Using Selenium (Recommended)
 
 ```bash
-# Download all files
-npm run dev
+# Interactive mode - watch the browser work
+python box_selenium_downloader.py "https://rak.app.box.com/s/YOUR_SHARED_LINK"
 
-# Download latest file only
-npm run dev latest
-
-# Download specific file
-npm run dev file "filename.xlsx"
+# Headless mode - runs in background
+python box_selenium_downloader.py "https://rak.app.box.com/s/YOUR_SHARED_LINK" --headless
 ```
 
-## 5. Docker (Optional)
+### Example with your RAK Box link:
 
 ```bash
-# Build
-docker build -t box-file-downloader .
+python box_selenium_downloader.py "https://rak.app.box.com/s/28k3u2r6xglkx4qh38driemzn3mcj3kq" --headless
+```
 
-# Run
-docker run -it --rm \
-  --env-file .env \
-  -v $(pwd)/downloads:/app/downloads \
-  box-file-downloader
+## 3. Extract Downloaded Files
+
+```bash
+./extract_and_organize.sh
+```
+
+Files will be extracted to `extracted_files/` directory.
+
+## Complete Workflow
+
+```bash
+# 1. Download from Box
+python box_selenium_downloader.py "YOUR_BOX_LINK" --headless -v
+
+# 2. Extract files
+./extract_and_organize.sh
+
+# 3. Use the files
+ls extracted_files/
 ```
 
 ## Troubleshooting
 
-**"Missing required environment variable"**
-- Check all variables in `.env` are filled
-- `BOX_CLIENT_ID`, `BOX_CLIENT_SECRET`, `BOX_DEVELOPER_TOKEN`, `DOWNLOAD_FOLDER_ID` are required
+### Chrome driver not found
+```bash
+# macOS
+brew install chromedriver
 
-**"Authentication failed"**
-- Developer token expires in 60 minutes - generate a new one
-- Check client ID and secret are correct
+# The error usually auto-resolves with selenium 4.x
+```
 
-**"No files found"**
-- Verify folder ID is correct
-- Check you have access to the folder in Box
-- Try removing `FILE_PATTERN` to see all files
+### No files downloaded
+- Check if the Box link is publicly accessible
+- Try without `--headless` to see what happens
+- Use `-v` flag for verbose output
 
-**"Cannot access folder"**
-- Make sure your Box app has access to the folder
-- Folder must be accessible by the account that created the app
+### Permission denied
+```bash
+chmod +x box_selenium_downloader.py extract_and_organize.sh
+```
+
+## Advanced Usage
+
+### Custom output directory
+```bash
+python box_selenium_downloader.py "BOX_LINK" --output ~/Desktop/box_files
+```
+
+### Verbose mode
+```bash
+python box_selenium_downloader.py "BOX_LINK" --headless -v
+```
+
+### Using config file (API method)
+```bash
+cp config.example.json config.json
+# Edit config.json with your links
+python box_downloader.py --config config.json
+```
+
+## What Gets Downloaded?
+
+Box downloads entire folders as ZIP files containing:
+- Excel files (.xlsx)
+- CSV files (.csv)
+- PDFs (.pdf)
+- Images (.png, .jpg)
+- Any other files in the shared folder
+
+## Integration Example
+
+Use in a shell script:
+
+```bash
+#!/bin/bash
+BOX_LINK="https://rak.app.box.com/s/28k3u2r6xglkx4qh38driemzn3mcj3kq"
+
+# Download
+python box_selenium_downloader.py "$BOX_LINK" --headless
+
+# Extract
+./extract_and_organize.sh
+
+# Process files
+python process_reports.py extracted_files/*.xlsx
+```
+
+## Automation with Cron
+
+```bash
+# Download Box files daily at 9 AM
+0 9 * * * cd /path/to/box-folder-downloader && python box_selenium_downloader.py "BOX_LINK" --headless
+```
+
+## Next Steps
+
+1. Star the repo if you find it useful
+2. Report issues on GitHub
+3. Contribute improvements

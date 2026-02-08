@@ -1,210 +1,122 @@
-<<<<<<< HEAD
-# Box_File_Downloader
-It is a repository to download the box files/docs from box api.
-=======
-# Box File Downloader
+# Box Folder Downloader
 
-Automated tool to download files from Box API with Docker support.
+A command-line tool to download files from Box shared folders without requiring Box Developer API credentials.
 
 ## Features
 
-- 📦 Download files from Box folders
-- 🔍 Filter files by pattern (e.g., `*.xlsx`, `*.csv`)
-- 🕐 Download latest file or all files
-- 🐳 Docker support for containerized deployment
-- 🔑 Supports both Developer Token and JWT authentication
+- Download entire Box shared folders from the terminal
+- No API credentials required - works with public shared links
+- Supports multiple download methods
+- Progress tracking and error handling
+- Configurable output directory
 
-## Prerequisites
+## Requirements
 
-- Node.js 18+ (for local development)
-- Docker (for containerized deployment)
-- Box API credentials
+- Python 3.7+
+- Chrome browser (for Selenium method)
+- Required Python packages (see requirements.txt)
 
-## Setup
-
-### 1. Get Box API Credentials
-
-#### Option A: Developer Token (Quick Testing)
-1. Go to [Box Developer Console](https://app.box.com/developers/console)
-2. Create a new app or select existing app
-3. Go to "Configuration" tab
-4. Scroll down to "Developer Token" section
-5. Generate Developer Token
-6. Copy the token (valid for 60 minutes)
-
-#### Option B: JWT Authentication (Production)
-1. Go to [Box Developer Console](https://app.box.com/developers/console)
-2. Create a new app with "Server Authentication (with JWT)"
-3. Go to "Configuration" tab
-4. Enable "Manage Enterprise Properties"
-5. Generate a Public/Private Keypair
-6. Download the JSON configuration file as `box_config.json`
-7. Submit app for authorization
-8. Admin must authorize the app in Box Admin Console
-
-### 2. Install Dependencies
+## Installation
 
 ```bash
-npm install
+# Clone the repository
+git clone <repository-url>
+cd box-folder-downloader
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Note: Chrome browser should be installed for Selenium automation
 ```
-
-### 3. Configure Environment Variables
-
-Copy the example environment file:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your configuration:
-
-```env
-# For Developer Token (quick testing)
-BOX_CLIENT_ID=your_client_id
-BOX_CLIENT_SECRET=your_client_secret
-BOX_DEVELOPER_TOKEN=your_developer_token
-
-# For JWT (production)
-BOX_CLIENT_ID=your_client_id
-BOX_CLIENT_SECRET=your_client_secret
-BOX_ENTERPRISE_ID=your_enterprise_id
-BOX_JWT_CONFIG_PATH=./box_config.json
-
-# Download settings
-DOWNLOAD_FOLDER_ID=123456789  # Your Box folder ID
-DOWNLOAD_PATH=./downloads
-FILE_PATTERN=*.xlsx,*.csv  # Optional: filter files
-```
-
-### 4. Find Your Folder ID
-
-1. Open Box in your browser
-2. Navigate to the folder you want to download from
-3. Look at the URL: `https://app.box.com/folder/123456789`
-4. The number `123456789` is your folder ID
 
 ## Usage
 
-### Local Development
+### Method 1: Selenium Browser Automation (Recommended)
 
-#### Download all files
+Automated browser-based download that works with most Box shared links:
+
 ```bash
-npm run dev
-# or
-npm run dev all
+# Interactive mode - browser window opens
+python box_selenium_downloader.py https://rak.app.box.com/s/your-shared-link
+
+# Headless mode - runs in background
+python box_selenium_downloader.py https://rak.app.box.com/s/your-shared-link --headless
+
+# Specify output directory
+python box_selenium_downloader.py https://rak.app.box.com/s/your-shared-link --output ./my_downloads
 ```
 
-#### Download latest file only
+### Method 2: Direct API (Limited Support)
+
+Direct API calls without browser (may not work for all shared links):
+
 ```bash
-npm run dev latest
+# Download from a Box shared link
+python box_downloader.py https://rak.app.box.com/s/your-shared-link
 ```
 
-#### Download specific file
+### Advanced Usage
+
 ```bash
-npm run dev file "Report_2024.xlsx"
+# Specify output directory
+python box_downloader.py <shared-link> --output ./downloads
+
+# Download only specific file types
+python box_downloader.py <shared-link> --filter "*.xlsx"
+
+# Verbose mode
+python box_downloader.py <shared-link> --verbose
 ```
 
-### Docker Deployment
+### Using Configuration File
 
-#### Build the Docker image
-```bash
-npm run docker:build
-# or
-docker build -t box-file-downloader .
-```
+Create a `config.json` file:
 
-#### Run with Docker
-```bash
-npm run docker:run
-# or
-docker run -it --rm \
-  --env-file .env \
-  -v $(pwd)/downloads:/app/downloads \
-  -v $(pwd)/box_config.json:/app/box_config.json:ro \
-  box-file-downloader
-```
-
-#### Run with Docker Compose
-```bash
-docker-compose up
-```
-
-#### Run as scheduled job (every hour)
-Edit `docker-compose.yml` and uncomment the cron command:
-
-```yaml
-command: sh -c "while true; do node dist/index.js; sleep 3600; done"
+```json
+{
+  "shared_links": [
+    "https://rak.app.box.com/s/28k3u2r6xglkx4qh38driemzn3mcj3kq"
+  ],
+  "output_dir": "downloads",
+  "file_types": [".xlsx", ".csv", ".pdf"]
+}
 ```
 
 Then run:
+
 ```bash
-docker-compose up -d
+python box_downloader.py --config config.json
 ```
 
-## Project Structure
+## How It Works
 
-```
-box-file-downloader/
-├── src/
-│   ├── index.ts          # Main entry point
-│   ├── config.ts         # Configuration loader
-│   ├── boxClient.ts      # Box API client
-│   └── fileManager.ts    # File download manager
-├── downloads/            # Downloaded files (created automatically)
-├── .env                  # Environment variables (not in git)
-├── .env.example          # Environment template
-├── box_config.json       # Box JWT config (not in git)
-├── Dockerfile            # Docker image definition
-├── docker-compose.yml    # Docker Compose configuration
-├── package.json          # Node.js dependencies
-├── tsconfig.json         # TypeScript configuration
-└── README.md             # This file
-```
+The tool uses Box's public API with shared links to:
+1. Fetch folder metadata and file listings
+2. Generate direct download URLs for each file
+3. Download files with progress tracking
+4. Handle authentication via shared link headers
 
-## Configuration Options
+## Limitations
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `BOX_CLIENT_ID` | Yes | Box application client ID |
-| `BOX_CLIENT_SECRET` | Yes | Box application client secret |
-| `BOX_DEVELOPER_TOKEN` | No* | Developer token (for testing) |
-| `BOX_JWT_CONFIG_PATH` | No* | Path to JWT config file (for production) |
-| `BOX_ENTERPRISE_ID` | No** | Enterprise ID (required for JWT) |
-| `DOWNLOAD_FOLDER_ID` | Yes | Box folder ID to download from |
-| `DOWNLOAD_PATH` | No | Local download path (default: `./downloads`) |
-| `FILE_PATTERN` | No | File patterns to match (e.g., `*.xlsx,*.csv`) |
-
-\* Either `BOX_DEVELOPER_TOKEN` or `BOX_JWT_CONFIG_PATH` must be provided
-\*\* Required when using JWT authentication
+- Only works with publicly shared Box links
+- Requires "Download" permission on the shared link
+- Large files may take time depending on connection speed
 
 ## Troubleshooting
 
-### Authentication Errors
+**Error: "Could not fetch folder items"**
+- Verify the shared link is public and has download permissions
+- Check your internet connection
+- The shared link may have expired
 
-**Developer Token expired:**
-- Developer tokens expire after 60 minutes
-- Generate a new token from Box Developer Console
+**Error: "Failed to download file"**
+- The file may be too large
+- Try downloading with `--verbose` flag for more details
 
-**JWT authentication failed:**
-- Ensure app is authorized by Box Admin
-- Check `box_config.json` is in the correct location
-- Verify `BOX_ENTERPRISE_ID` matches your enterprise
+## Contributing
 
-### Permission Errors
-
-**Cannot access folder:**
-- Ensure the Box app has access to the folder
-- For JWT apps, content may need to be owned by the Service Account
-- Check folder ID is correct
-
-### Download Errors
-
-**No files found:**
-- Verify folder ID is correct
-- Check file pattern matches your files
-- Ensure folder contains files
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-ISC
->>>>>>> edde7f4 (Initial commit: Box File Downloader automation tool)
+MIT License
